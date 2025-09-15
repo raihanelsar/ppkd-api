@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -16,9 +17,9 @@ class UserController extends Controller
     {
         $users = User::get();
         return response()->json([
-            'data' => $users,
             'status' => true,
-            'message' => 'Fetch data success'
+            'message' => 'Fetch data success',
+            'data' => $users,
         ]);
     }
 
@@ -37,13 +38,15 @@ class UserController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'name' => 'required|string',
-                'email' => 'required|string|email|unique:user,email',
-                'password' => 'required|min:8'
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users,email',
+                'password' => 'required|string|min:8'
             ]);
+
             if ($validator->fails()) {
                 return response()->json([
-                    'message' => 'Validation Fail',
+                    'status' => false,
+                    'message' => 'Validation Failed',
                     'errors' => $validator->errors()
                 ], 422);
             }
@@ -51,7 +54,7 @@ class UserController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => $request->password,
+                'password' => Hash::make($request->password),
             ]);
 
             return response()->json([
@@ -72,7 +75,19 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        //
+        try {
+            $user = User::find($id);
+            return response()->json([
+                'status' => true,
+                'message' => 'Edit data user success',
+                'data' => $user,
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -88,7 +103,25 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        try {
+            $user = User::findOrFail($id);
+            $user->name = $request->name;
+            if ($request->filled('password')) {
+                $user->password = Hash::make($request->password);
+            }
+            $user->email = $request->email;
+            $user->save();
+            return response()->json([
+                'status' => true,
+                'message' => 'Update user success',
+                'data' => $user,
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -96,6 +129,17 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            User::find($id)->delete();
+            return response()->json([
+                'status' => true,
+                'message' => 'Delete success'
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage(),
+            ], 500);
+        }
     }
 }

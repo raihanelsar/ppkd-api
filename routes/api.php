@@ -11,4 +11,10 @@ Route::get('/', function () {
     return response()->json('API sudah bisa digunakan');
 });
 
-Route::apiResource('user', \App\Http\Controllers\API\UserController::class);
+Route::post('login', [\App\Http\Controllers\API\LoginController::class, 'login'])->name('login');
+
+// token sudah ada
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('me', [\App\Http\Controllers\API\LoginController::class, 'me'])->name('me');
+    Route::apiResource('user', \App\Http\Controllers\API\UserController::class);
+});
